@@ -17,6 +17,25 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from audit.audit_log import add_audit_log
 
+def format_log_entry(entry):
+    # Extract timestamp, method, and hash using regex
+    timestamp_match = re.search(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}', entry)
+    method_match = re.search(r'Method: (Data Redaction|Data Masking)', entry)
+    hash_match = re.search(r'Hash: (\w+)', entry)
+    
+    timestamp = timestamp_match.group(0) if timestamp_match else "Unknown"
+    method = method_match.group(1) if method_match else "Unknown"
+    hash_value = hash_match.group(1) if hash_match else "Unknown"
+    
+    return f"""
+    <div style="margin-bottom: 10px; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+        <p style="margin: 0; font-weight: bold;">{timestamp}</p>
+        <p style="margin: 0; color: #555;">Method: <span style="font-weight: bold;">{method}</span></p>
+        <p style="margin: 0; color: #888;">Hash: <code>{hash_value}</code></p>
+        <p style="margin: 0; color: #777;">{entry}</p>
+    </div>
+    """
+
 
 def hash_data(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()
@@ -237,7 +256,7 @@ def main():
     st.text("Enhanced Data Protection Tool")
     st.text("Built with Streamlit and spaCy")
 
-    activities = ["Data Protection", "Entity Analysis", "Downloads", "About"]
+    activities = ["Data Protection", "Entity Analysis", "Downloads", "About","View Logs"]
     choice = st.sidebar.selectbox("Select Task", activities)
 
     if choice == "Data Protection":
@@ -321,6 +340,24 @@ def main():
         else:
             st.write("No download history available.")
 
+    elif choice == "View Logs":
+        st.subheader("View Logs")
+
+        # Path to your log file
+        log_file_path = ".//data_protection_tool.log"
+
+        if os.path.exists(log_file_path):
+            with open(log_file_path, 'r') as file:
+                log_entries = file.readlines()
+                
+            # Display log entries with custom formatting
+            for entry in log_entries:
+                formatted_entry = format_log_entry(entry.strip())
+                st.markdown(formatted_entry, unsafe_allow_html=True)
+        else:
+            st.error("Log file not found.")
+   
+    
     elif choice == "About":
         st.subheader("About")
         st.write("This is an enhanced data protection tool built with Streamlit and spaCy.")
@@ -333,6 +370,8 @@ def main():
         st.write("- File upload support")
         st.write("- Email detection and protection")
 
+    
+    
     # Run cleanup job
     cleanup_old_files()
 
