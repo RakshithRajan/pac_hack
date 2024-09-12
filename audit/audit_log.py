@@ -45,17 +45,32 @@ def add_audit_log(user, data_hash, action, timestamp):
     """
     print(f"Adding audit log - User: {user}, Hash: {data_hash}, Action: {action}, Timestamp: {timestamp}")
     
-    try:
-        # Interact with the deployed contract
-        tx_hash = contract.functions.addAuditLog(user, data_hash, action, timestamp).transact({'from': sender_account})
+    def add_audit_log(user: str, data_hash: str, action: str, timestamp: str):
+        try:
+        # Call the smart contract function to add a log
+            tx_hash = contract.functions.addLog(data_hash, action, timestamp).transact({'from': user})
         
-        # Wait for the transaction to be mined
-        receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
-        print(f"Audit log added with transaction hash: {tx_hash.hex()}")
-        return receipt
-    except Exception as e:
-        print(f"An error occurred while adding audit log: {str(e)}")
-        return None
+        # Wait for transaction receipt
+            receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
+        
+            st.info(f"Log added to blockchain. Transaction Hash: {tx_hash.hex()}")
+        
+        # Check for events
+            log_created_event = contract.events.LogCreated().process_receipt(receipt)
+            if log_created_event:
+                st.success("Event emitted successfully")
+                st.json(log_created_event)
+            else:
+                st.warning("No event was emitted.")
+        
+            return True
+    
+        except ValueError as e:
+            st.error(f"Invalid input: {e}")
+        except Exception as e:
+            st.error(f"Error adding log to blockchain: {e}")
+    
+    return False
 
 # Example usage (can be triggered from your main app):
 if __name__ == "__main__":

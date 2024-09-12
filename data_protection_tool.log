@@ -1,2 +1,74 @@
-2024-09-12 02:12:41,071 - INFO - 2024-09-12T02:12:41.071250 | Method: Data Redaction | Redacted: 1 chars | Hash: 769c2bbaac2daee5e3557521e1b2613be1eea1364b3bb48141ab491c0db931ac
-2024-09-12 02:12:41,081 - INFO - Download history updated: data_redaction_20240912_021241.txt
+2024-09-12 13:33:11,605 - INFO - 2024-09-12T13:33:11.605808 | Method: Data Redaction | Redacted: 0 chars | Hash: bd6f05b09f0d609ad295459e004f5ca37798d29d420125b806443dbd796e4584
+2024-09-12 13:33:11,730 - INFO - Download history updated: data_redaction_20240912_133311.txt
+2024-09-12 13:33:33,494 - INFO - 2024-09-12T13:33:33.494063 | Method: Data Redaction | Redacted: 0 chars | Hash: bd6f05b09f0d609ad295459e004f5ca37798d29d420125b806443dbd796e4584
+2024-09-12 13:33:33,577 - INFO - Download history updated: data_redaction_20240912_133333.txt
+2024-09-12 13:35:25,879 - INFO - 2024-09-12T13:35:25.879663 | Method: Data Redaction | Redacted: 0 chars | Hash: bd6f05b09f0d609ad295459e004f5ca37798d29d420125b806443dbd796e4584
+2024-09-12 13:35:25,944 - INFO - Download history updated: data_redaction_20240912_133525.txt
+2024-09-12 13:36:21,666 - INFO - 2024-09-12T13:36:21.666784 | Method: Data Redaction | Redacted: 1 chars | Hash: 769c2bbaac2daee5e3557521e1b2613be1eea1364b3bb48141ab491c0db931ac
+2024-09-12 13:36:21,736 - INFO - Download history updated: data_redaction_20240912_133621.txt
+2024-09-12 13:38:37,713 - INFO - 2024-09-12T13:38:37.713290 | Method: Data Redaction | Redacted: 1 chars | Hash: 769c2bbaac2daee5e3557521e1b2613be1eea1364b3bb48141ab491c0db931ac
+2024-09-12 13:38:37,797 - INFO - Download history updated: data_redaction_20240912_133837.txt
+2024-09-12 13:44:15,001 - INFO - 2024-09-12T13:44:15.001001 | Method: Data Redaction | Redacted: 1 chars | Hash: 769c2bbaac2daee5e3557521e1b2613be1eea1364b3bb48141ab491c0db931ac
+2024-09-12 13:44:15,066 - INFO - Download history updated: data_redaction_20240912_134415.txt
+2024-09-12 13:48:03,911 - INFO - 2024-09-12T13:48:03.911353 | Method: Data Redaction | Redacted: 1 chars | Hash: 769c2bbaac2daee5e3557521e1b2613be1eea1364b3bb48141ab491c0db931ac
+2024-09-12 13:48:04,007 - INFO - Download history updated: data_redaction_20240912_134803.txt
+2024-09-12 13:58:28,547 - ERROR - Error: Could not transact with/call contract function, is contract deployed correctly and chain synced?
+2024-09-12 14:04:01,185 - INFO - 2024-09-12T14:04:01.185902 | Method: Data Redaction | Redacted: 1 chars | Hash: 769c2bbaac2daee5e3557521e1b2613be1eea1364b3bb48141ab491c0db931ac
+2024-09-12 14:04:01,261 - INFO - Download history updated: data_redaction_20240912_140401.txt
+2024-09-12 14:12:33,818 - INFO - 2024-09-12T14:12:33.818669 | Method: Data Redaction | Redacted: 0 chars | Hash: bd6f05b09f0d609ad295459e004f5ca37798d29d420125b806443dbd796e4584
+2024-09-12 14:12:33,906 - INFO - Download history updated: data_redaction_20240912_141233.txt
+2024-09-12 14:16:16,826 - INFO - 2024-09-12T14:16:16.826455 | Method: Data Redaction | Redacted: 1 chars | Hash: 769c2bbaac2daee5e3557521e1b2613be1eea1364b3bb48141ab491c0db931ac
+2024-09-12 14:16:16,922 - INFO - Download history updated: data_redaction_20240912_141616.txt
+2024-09-12 14:21:08,337 - INFO - 2024-09-12T14:21:08.336631 | Method: Data Redaction | Redacted: 1 chars | Hash: 769c2bbaac2daee5e3557521e1b2613be1eea1364b3bb48141ab491c0db931ac
+2024-09-12 14:21:08,408 - INFO - Download history updated: data_redaction_20240912_142108.txt
+2024-09-12 14:24:43,323 - INFO - 2024-09-12T14:24:43.323938 | Method: Data Redaction | Redacted: 1 chars | Hash: 769c2bbaac2daee5e3557521e1b2613be1eea1364b3bb48141ab491c0db931ac
+2024-09-12 14:24:43,392 - INFO - Download history updated: data_redaction_20240912_142443.txt
+2024-09-12 14:28:36,264 - INFO - 2024-09-12T14:28:36.264224 | Method: Data Redaction | Redacted: 1 chars | Hash: 769c2bbaac2daee5e3557521e1b2613be1eea1364b3bb48141ab491c0db931ac
+2024-09-12 14:28:36,333 - INFO - Download history updated: data_redaction_20240912_142836.txt
+2024-09-12 14:29:09,723 - INFO - 2024-09-12T14:29:09.722875 | Method: Data Redaction | Redacted: 2 chars | Hash: baa41fac932b96e6ab03a086f61c319fea3224f1f6cbed7970ee18648589f7cc
+2024-09-12 14:29:09,808 - INFO - Download history updated: data_redaction_20240912_142909.txt
+2024-09-12 14:39:05,980 - INFO - 2024-09-12T14:39:05.980739 | Method: Data Redaction | Redacted: 1 chars | Hash: 769c2bbaac2daee5e3557521e1b2613be1eea1364b3bb48141ab491c0db931ac
+2024-09-12 14:39:06,080 - INFO - Download history updated: data_redaction_20240912_143906.txt
+2024-09-12 14:42:43,270 - INFO - 2024-09-12T14:42:43.270882 | Method: Data Redaction | Redacted: 1 chars | Hash: 769c2bbaac2daee5e3557521e1b2613be1eea1364b3bb48141ab491c0db931ac
+2024-09-12 14:42:43,334 - INFO - Download history updated: data_redaction_20240912_144243.txt
+2024-09-12 14:47:27,238 - INFO - 2024-09-12T14:47:27.238438 | Method: Data Redaction | Redacted: 1 chars | Hash: 769c2bbaac2daee5e3557521e1b2613be1eea1364b3bb48141ab491c0db931ac
+2024-09-12 14:47:27,302 - INFO - Download history updated: data_redaction_20240912_144727.txt
+2024-09-12 14:52:22,203 - INFO - 2024-09-12T14:52:22.203462 | Method: Data Redaction | Redacted: 1 chars | Hash: 769c2bbaac2daee5e3557521e1b2613be1eea1364b3bb48141ab491c0db931ac
+2024-09-12 14:52:22,273 - INFO - Log added to blockchain successfully: 769c2bbaac2daee5e3557521e1b2613be1eea1364b3bb48141ab491c0db931ac
+2024-09-12 14:52:22,345 - INFO - Download history updated: data_redaction_20240912_145222.txt
+2024-09-12 14:55:59,531 - INFO - 2024-09-12T14:55:59.531245 | Method: Data Redaction | Redacted: 1 chars | Hash: 769c2bbaac2daee5e3557521e1b2613be1eea1364b3bb48141ab491c0db931ac
+2024-09-12 14:55:59,609 - INFO - Log added to blockchain successfully: 769c2bbaac2daee5e3557521e1b2613be1eea1364b3bb48141ab491c0db931ac
+2024-09-12 14:55:59,680 - INFO - Download history updated: data_redaction_20240912_145559.txt
+2024-09-12 14:57:01,076 - INFO - 2024-09-12T14:57:01.076961 | Method: Data Redaction | Redacted: 0 chars | Hash: bd6f05b09f0d609ad295459e004f5ca37798d29d420125b806443dbd796e4584
+2024-09-12 14:57:01,172 - INFO - Log added to blockchain successfully: bd6f05b09f0d609ad295459e004f5ca37798d29d420125b806443dbd796e4584
+2024-09-12 14:57:01,272 - INFO - Download history updated: data_redaction_20240912_145701.txt
+2024-09-12 16:18:41,492 - INFO - 2024-09-12T16:18:41.492650 | Method: Data Redaction | Redacted: 1 chars | Hash: dbb2ecf6798b5fee4275194dc645fb0eb52a265ddb621f98ce59c7aefb6979b4
+2024-09-12 16:18:41,561 - INFO - Log added to blockchain successfully: dbb2ecf6798b5fee4275194dc645fb0eb52a265ddb621f98ce59c7aefb6979b4
+2024-09-12 16:18:41,674 - INFO - Download history updated: data_redaction_20240912_161841.txt
+2024-09-12 16:18:55,337 - INFO - 2024-09-12T16:18:55.337316 | Method: Data Masking | Redacted: -2 chars | Hash: c9640c6575cc2ed5e3454a21ba37d46375df0c7bc397404c3fabd10ca6ca07f6
+2024-09-12 16:18:55,409 - INFO - Log added to blockchain successfully: c9640c6575cc2ed5e3454a21ba37d46375df0c7bc397404c3fabd10ca6ca07f6
+2024-09-12 16:18:55,499 - INFO - Download history updated: data_masking_20240912_161855.txt
+2024-09-12 16:19:33,930 - INFO - 2024-09-12T16:19:33.930409 | Method: Data Anonymization | Redacted: 4 chars | Hash: 35c738fb733061828d39d7958bc66c78250339196784fae6c49520d6dd04db64
+2024-09-12 16:19:33,997 - INFO - Log added to blockchain successfully: 35c738fb733061828d39d7958bc66c78250339196784fae6c49520d6dd04db64
+2024-09-12 16:19:34,083 - INFO - Download history updated: data_anonymization_20240912_161934.txt
+2024-09-12 17:27:30,072 - INFO - 2024-09-12T17:27:30.072795 | Method: Data Redaction | Redacted: 1 chars | Hash: 769c2bbaac2daee5e3557521e1b2613be1eea1364b3bb48141ab491c0db931ac
+2024-09-12 17:27:30,166 - INFO - Log added to blockchain successfully: 769c2bbaac2daee5e3557521e1b2613be1eea1364b3bb48141ab491c0db931ac
+2024-09-12 17:27:30,259 - INFO - Download history updated: data_redaction_20240912_172730.txt
+2024-09-12 17:32:08,237 - INFO - 2024-09-12T17:32:08.237941 | Method: Data Redaction | Redacted: 1 chars | Hash: 769c2bbaac2daee5e3557521e1b2613be1eea1364b3bb48141ab491c0db931ac
+2024-09-12 17:32:08,335 - INFO - Log added to blockchain successfully: 769c2bbaac2daee5e3557521e1b2613be1eea1364b3bb48141ab491c0db931ac
+2024-09-12 17:32:08,444 - INFO - Download history updated: data_redaction_20240912_173208.txt
+2024-09-12 17:41:55,852 - INFO - 2024-09-12T17:41:55.852048 | Method: Data Redaction | Redacted: 1 chars | Hash: 769c2bbaac2daee5e3557521e1b2613be1eea1364b3bb48141ab491c0db931ac
+2024-09-12 17:41:56,166 - ERROR - Error adding log to blockchain: ContractEvent.create_filter() got an unexpected keyword argument 'fromBlock'
+2024-09-12 17:42:42,423 - INFO - 2024-09-12T17:42:42.423023 | Method: Data Redaction | Redacted: 1 chars | Hash: 769c2bbaac2daee5e3557521e1b2613be1eea1364b3bb48141ab491c0db931ac
+2024-09-12 17:42:42,650 - ERROR - Error adding log to blockchain: Object of type AttributeDict is not JSON serializable
+2024-09-12 17:45:42,322 - INFO - 2024-09-12T17:45:42.322460 | Method: Data Redaction | Redacted: 1 chars | Hash: 769c2bbaac2daee5e3557521e1b2613be1eea1364b3bb48141ab491c0db931ac
+2024-09-12 17:45:42,486 - ERROR - Error adding log to blockchain: ContractEvent.create_filter() got an unexpected keyword argument 'fromBlock'
+2024-09-12 17:48:33,817 - INFO - 2024-09-12T17:48:33.817166 | Method: Data Redaction | Redacted: 1 chars | Hash: 769c2bbaac2daee5e3557521e1b2613be1eea1364b3bb48141ab491c0db931ac
+2024-09-12 17:48:34,025 - INFO - Log added to blockchain successfully: 769c2bbaac2daee5e3557521e1b2613be1eea1364b3bb48141ab491c0db931ac
+2024-09-12 17:48:34,146 - INFO - Download history updated: data_redaction_20240912_174834.txt
+2024-09-12 17:49:49,250 - INFO - 2024-09-12T17:49:49.250651 | Method: Data Redaction | Redacted: 1 chars | Hash: 769c2bbaac2daee5e3557521e1b2613be1eea1364b3bb48141ab491c0db931ac
+2024-09-12 17:49:49,534 - INFO - Log added to blockchain successfully: 769c2bbaac2daee5e3557521e1b2613be1eea1364b3bb48141ab491c0db931ac
+2024-09-12 17:49:49,762 - INFO - Download history updated: data_redaction_20240912_174949.txt
+2024-09-12 17:49:54,128 - INFO - 2024-09-12T17:49:54.128363 | Method: Data Redaction | Redacted: 1 chars | Hash: 769c2bbaac2daee5e3557521e1b2613be1eea1364b3bb48141ab491c0db931ac
+2024-09-12 17:49:54,233 - INFO - Log added to blockchain successfully: 769c2bbaac2daee5e3557521e1b2613be1eea1364b3bb48141ab491c0db931ac
+2024-09-12 17:49:54,359 - INFO - Download history updated: data_redaction_20240912_174954.txt

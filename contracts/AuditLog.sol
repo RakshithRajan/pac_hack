@@ -1,9 +1,9 @@
-// contracts/AuditLog.sol
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
 
 contract AuditLog {
     struct Log {
-        address user;
         string hash;
         string action;
         string timestamp;
@@ -11,14 +11,19 @@ contract AuditLog {
 
     Log[] public logs;
 
-    event LogCreated(address indexed user, string hash, string action, string timestamp);
+    event LogCreated(string indexed hash, string action, string timestamp);
 
     function addLog(string memory _hash, string memory _action, string memory _timestamp) public {
-        logs.push(Log(msg.sender, _hash, _action, _timestamp));
-        emit LogCreated(msg.sender, _hash, _action, _timestamp);
+        logs.push(Log(_hash, _action, _timestamp));
+        
+        emit LogCreated(_hash, _action, _timestamp);
     }
 
     function getLogs() public view returns (Log[] memory) {
         return logs;
+    }
+
+    function getLogsCount() public view returns (uint) {
+        return logs.length;
     }
 }
