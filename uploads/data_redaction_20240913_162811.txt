@@ -1,0 +1,156 @@
+[Redacted]
+1
+SIH
+[Redacted], [Redacted], and LLaMA are not suitable for offline 
+redaction tools like "RE-DACT" due to their large size 
+and high computational requirements, which demand 
+significant hardware resources. Additionally, their 
+substantial memory and storage needs make them 
+impractical for local deployment. Ensuring data 
+security and not storing sensitive data can be 
+problematic with these models, as managing and 
+securing such large models locally poses significant 
+challenges.
+We have to make our own customized model using 
+spaCy as base along with other models.
+[Redacted] by [Redacted] is a powerful tool designed for the detection and redaction 
+of [Redacted] ([Redacted]). Here’s how it could be helpful for your 
+project:
+What it Does:
+[Redacted] is an open-source solution specifically built to identify and redact 
+sensitive information from text. It can recognize and handle various types of [Redacted], 
+including phone numbers, email addresses, [Redacted] (SSNs), and 
+other confidential data.
+[Redacted]:
+Highly Customizable: You can tailor [Redacted] to meet your specific needs by 
+configuring its built-in detectors or adding custom ones. This flexibility allows 
+[Redacted]
+2
+it to adapt to different data types and formats.
+Offline Capability: Unlike cloud-based models, [Redacted] operates offline, 
+making it suitable for environments where data privacy is a concern, as it does 
+not require internet access for processing.
+Integration with spaCy: Presidio works seamlessly with spaCy, a popular [Redacted] 
+library, enhancing its text analysis capabilities and enabling more 
+sophisticated [Redacted] detection.
+[Redacted]:
+Limited Scope: While [Redacted] is effective at detecting predefined types of [Redacted], 
+its built-in capabilities may not cover all sensitive information unless extended. 
+Custom recognizers can be added, but this requires additional development 
+effort.
+[Redacted]’s offline functionality and customizable nature make it a strong candidate 
+for integrating into tools like “RE-DACT,” where control over data processing and 
+privacy is paramount.
+[Redacted]
+3
+Since all 3 of these are completely different tasks we 
+can have three different options for the user to use 
+before working on the document along with selecting 
+the intensity of redacting.. 
+Redaction: Users can select this option to permanently remove or obscure 
+sensitive information from the data, leaving a blank or placeholder. This is 
+ideal for scenarios where the original data should not be recoverable.
+Anonymization: This option will modify the data to protect personal identifiers 
+while retaining the overall data structure and format. It’s useful for data sharing
+or analysis where preserving the context is important without revealing 
+individual identities.
+Masking: Users can opt for masking to replace sensitive data with a 
+predefined mask or pattern, such as [Redacted] or asterisks. This approach allows for 
+[Redacted]
+4
+the sensitive data to be hidden while still maintaining its structure for testing or 
+other purposes.
+The [Redacted] consists of 
+[Redacted] ([Redacted]):
+Full names
+[Redacted] numbers (SSNs)
+Passport numbers
+[Redacted]’s license numbers
+[Redacted] (home, work)
+Email addresses
+Phone numbers
+National identification numbers
+[Redacted]:
+[Redacted] account numbers
+[Redacted] card numbers
+Debit card numbers
+Tax identification numbers
+Income and salary details
+[Redacted] reports
+[Redacted] information
+[Redacted]
+5
+[Redacted] or [Redacted]):
+Medical records
+Health insurance information
+Prescription details
+Treatment history
+Mental health records
+[Redacted]:
+Legal case details
+[Redacted] documents
+[Redacted] and agreements
+Confidential corporate communications
+Trade secrets
+Government and Military Information:
+Classified documents
+Security clearance levels
+Government project details
+Military deployment locations
+Commercial Information:
+Proprietary business information
+[Redacted] secrets
+Intellectual property details
+[Redacted] plans
+[Redacted]
+6
+Customer lists
+[Redacted]:
+Private emails
+Personal messages ([Redacted], chat logs)
+[Redacted] transcripts
+[Redacted] memos
+Meeting notes
+[Redacted]:
+[Redacted] addresses
+[Redacted] addresses
+Device IDs
+[Redacted] and passwords
+[Redacted] (fingerprints, facial recognition data)
+[Redacted]:
+GPS coordinates
+Travel itineraries
+Real-time location data
+Personal Characteristics:
+Ethnicity
+Gender identity
+Sexual orientation
+Religious beliefs
+SIH
+7
+Political affiliations
+We will have to train domain specific (for [Redacted], health 
+care related) for them to be more precise and accurate 
+and for data generation we can regression 
+expressions.
+Since the Domain Bucket is “Blockchain and 
+Cybersecurity”.. maybe we should pay a bit more 
+attention to it like integrating blockchain technology to 
+[Redacted]
+8
+create a secure and immutable record of the redaction 
+process. This ensures data integrity and provides a 
+transparent log of what data was redacted, by whom, 
+and when.
+Customizable Redaction Templates
+Allow users to create and save customizable redaction templates based on their 
+specific needs. These templates could include predefined rules for different types 
+of sensitive data, making the redaction process faster and more tailored.
+[Redacted]
+Introduce adaptive redaction levels based on the sensitivity of the data. For 
+example, a feature that uses [Redacted] to suggest appropriate redaction levels based on 
+the content's sensitivity, user intent, or regulatory requirements.
+[Redacted] Assistant
+Create an interactive assistant that guides users through the redaction process, 
+offering real-time suggestions and visual feedback. This could use a combination 
+of [Redacted] and [Redacted] elements to help users quickly and accurately redact information.

@@ -1,3 +1,5 @@
+from cryptography.fernet import Fernet
+
 from web3.datastructures import AttributeDict
 import spacy
 import streamlit as st
@@ -15,6 +17,65 @@ import sys
 import hashlib
 from web3 import Web3
 import json
+import streamlit as st
+import fitz  # PyMuPDF
+from docx import Document
+from pptx import Presentation
+import io
+import pyrebase
+
+
+
+def process_docx(file) -> str:
+    doc = Document(io.BytesIO(file.read()))
+    text = ""
+    for paragraph in doc.paragraphs:
+        text += paragraph.text + "\n"
+    return text
+
+def extract_text_from_docx(file):
+    doc = Document(io.BytesIO(file))
+    text = ""
+    for para in doc.paragraphs:
+        text += para.text + "\n"
+    return text
+
+def extract_text_from_pdf(file):
+    pdf_document = fitz.open(stream=file, filetype="pdf")
+    text = ""
+    for page in pdf_document:
+        text += page.get_text()
+    return text
+
+def extract_text_from_pptx(file):
+    ppt = Presentation(io.BytesIO(file))
+    text = ""
+    for slide in ppt.slides:
+        for shape in slide.shapes:
+            if hasattr(shape, "text"):
+                text += shape.text + "\n"
+    return text
+
+def process_pptx(file) -> str:
+    presentation = Presentation(io.BytesIO(file.read()))
+    text = ""
+    for slide in presentation.slides:
+        for shape in slide.shapes:
+            if hasattr(shape, "text"):
+                text += shape.text + "\n"
+    return text
+
+def process_pdf(file) -> str:
+    # Open the PDF file
+    pdf_document = fitz.open(stream=file.read(), filetype="pdf")
+    
+    # Extract text from each page
+    text = ""
+    for page_num in range(len(pdf_document)):
+        page = pdf_document.load_page(page_num)
+        text += page.get_text()
+    
+    return text
 
 
 
@@ -29,7 +90,7 @@ blockchain_url = (
 )
 web3 = Web3(Web3.HTTPProvider(blockchain_url))
 
-contract_address = "0xfeEf63649c2925bc4C664076bd3eCF959f50A310"  # Replace with your deployed contract address
+contract_address = "0x7bB51F69c5E8c1C31Fa36F2Fdf32c26C7C4275f8"  # Replace with your deployed contract address
 
 # Use the user's suggested approach
 compiled_contract_path = os.path.join(
@@ -44,6 +105,26 @@ contract = web3.eth.contract(address=contract_address, abi=audit_contract_abi)
 
 # Set default account
 web3.eth.default_account = web3.eth.accounts[0]
+
+import os
+
+def process_file(file):
+    file_extension = os.path.splitext(file.name)[1].lower()
+    if file_extension == ".txt":
+        return file.read().decode("utf-8")
+    elif file_extension == ".pdf":
+        return process_pdf(file)
+    elif file_extension == ".docx":
+        return process_docx(file)
+    elif file_extension == ".pptx":
+        return process_pptx(file)
+    else:
+        raise ValueError("Unsupported file format")
+
+
+
+
+
 
 
 def get_audit_logs():
@@ -69,9 +150,9 @@ def serialize_web3_object(obj):
         return obj
     return str(obj)
 
-def add_audit_log(data_hash: str, action: str, timestamp: str):
+def add_audit_log(user_id: str, data_hash: str, action: str, timestamp: str):
     try:
-        tx_hash = contract.functions.addLog(data_hash, action, timestamp).transact()
+        tx_hash = contract.functions.addLog(user_id, data_hash, action, timestamp).transact()
         receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
 
         print(f"Log added to blockchain. Transaction Hash: {tx_hash.hex()}")
@@ -80,7 +161,7 @@ def add_audit_log(data_hash: str, action: str, timestamp: str):
 
         st.success(f"Log added to blockchain. Transaction Hash: {tx_hash.hex()}")
 
-        # Fetch events using get_logs instead of create_filter
+        # Fetch events using get_logs
         event_filter = {
             'fromBlock': receipt.blockNumber,
             'toBlock': receipt.blockNumber,
@@ -106,7 +187,7 @@ def add_audit_log(data_hash: str, action: str, timestamp: str):
         print(error_message)
         st.error(error_message)
         raise
-
+    
 def format_log_entry(entry):
     # Extract timestamp, method, and hash using regex
     timestamp_match = re.search(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}", entry)
@@ -145,25 +226,24 @@ def log_protection_activity(
 
     # Log to blockchain
     try:
-        add_audit_log(data_hash, protection_method, timestamp)
+        add_audit_log(user_id, data_hash, protection_method, timestamp)
         logging.info(f"Log added to blockchain successfully: {data_hash}")
     except Exception as e:
         logging.error(f"Error adding log to blockchain: {e}")
 
 
-def process_text(text, protection_method, entity_types, custom_words):
-    # Process the text based on the protection method
+def process_text(text, protection_method, entity_types, custom_words, redaction_level):
     if protection_method == "Data Redaction":
-        result, _ = redact_entities(text, entity_types, custom_words, "High")
+        result, _ = redact_entities(text, entity_types, custom_words, redaction_level)
     elif protection_method == "Data Masking":
         result = mask_data(text, entity_types, custom_words)
     else:  # Data Anonymization
         result = anonymize_data(text, entity_types, custom_words)
 
-    # Log the protection activity (this now handles both file and blockchain logging)
-    log_protection_activity(text, result, protection_method)
+    log_protection_activity(text, result, protection_method, redaction_level)
 
     return result
+
 
 
 DOWNLOAD_HISTORY_FILE = "download_history.json"
@@ -193,12 +273,7 @@ def load_nlp_model():
 nlp, email_matcher = load_nlp_model()
 
 
-def redact_entities(
-    text: str,
-    entity_types: List[str],
-    custom_words: Optional[List[str]] = None,
-    redaction_level: str = "Low",
-) -> Tuple[str, List[Tuple[int, int, str, str]]]:
+def redact_entities(text: str, entity_types: List[str], custom_words: Optional[List[str]] = None, redaction_level: str = "Low") -> Tuple[str, List[Tuple[int, int, str, str]]]:
     doc = nlp(text)
     redactions = []
 
@@ -213,9 +288,7 @@ def redact_entities(
     if custom_words:
         for word in custom_words:
             for match in re.finditer(re.escape(word), text, re.IGNORECASE):
-                redactions.append(
-                    (match.start(), match.end(), "[REDACTED CUSTOM]", "CUSTOM")
-                )
+                redactions.append((match.start(), match.end(), "[REDACTED CUSTOM]", "CUSTOM"))
 
     if "EMAIL" in entity_types:
         email_matches = email_matcher(doc)
@@ -234,6 +307,7 @@ def redact_entities(
         text = text[:start] + replacement + text[end:]
 
     return text, redactions
+
 
 
 def generate_fake_data(entity_type: str) -> str:
@@ -335,16 +409,23 @@ def get_entity_counts(text: str) -> Dict[str, int]:
     return entity_counts
 
 
-def get_download_link(text: str, filename: str, link_text: str) -> str:
-    file_path = os.path.join(UPLOAD_FOLDER, filename)
-    with open(file_path, "w") as f:
-        f.write(text)
+def get_download_link(text, file_name, link_text="Download"):
+    # Create a BytesIO object to hold the text data
+    buffer = io.BytesIO()
+    
+    # Write text to the BytesIO buffer directly
+    buffer.write(text.encode('utf-8'))
+    
+    # Seek to the beginning of the buffer to read its contents
+    buffer.seek(0)
+    
+    # Encode the buffer contents to base64
+    b64 = base64.b64encode(buffer.read()).decode()
+    
+    # Create a download link
+    href = f'<a href="data:file/txt;base64,{b64}" download="{file_name}">{link_text}</a>'
+    return href
 
-    with open(file_path, "rb") as f:
-        bytes_data = f.read()
-
-    b64 = base64.b64encode(bytes_data).decode()
-    return f'<a href="data:file/txt;base64,{b64}" download="{filename}">{link_text}</a>'
 
 
 def save_download_history(filename: str):
@@ -387,207 +468,282 @@ def cleanup_old_files():
     except Exception as e:
         logging.error(f"Error during file cleanup: {e}")
 
+firebaseConfig = {
+  "apiKey": "AIzaSyBSxQrlZX9-1Hwkse8JF3RNKFojt519wQs",
+  "authDomain": "pachack-49b6f.firebaseapp.com",
+  "databaseURL": "https://pachack-49b6f-default-rtdb.asia-southeast1.firebasedatabase.app",
+  "projectId": "pachack-49b6f",
+  "storageBucket": "pachack-49b6f.appspot.com",
+  "messagingSenderId": "875463536726",
+  "appId": "1:875463536726:web:d5d1a2a2e39720c00a4bf7",
+  "measurementId": "G-YQZV45GGGF"
+}
+
+# Initialize Firebase
+firebase = pyrebase.initialize_app(firebaseConfig)
+auth = firebase.auth()
+db = firebase.database()
+
+# Streamlit app
+
+
+# Sidebar for Login or Signup
+
+
+
 
 def main():
     st.title("RE-DACT")
     st.text("Enhanced Data Protection Tool")
     st.text("Built with Streamlit and spaCy")
 
-    activities = [
-        "Data Protection",
-        "Entity Analysis",
-        "Downloads",
-        "About",
-        "View Logs",
-    ]
-    choice = st.sidebar.selectbox("Select Task", activities)
+    if 'user' not in st.session_state:
+        st.session_state['user'] = None
 
-    if choice == "Data Protection":
-        st.subheader("Data Protection Options")
+    if not st.session_state['user']:
+        choice = st.sidebar.selectbox("Login/Signup", ["Login", "Signup"])
+        
+        if choice == "Signup":
+            with st.form("signup_form"):
+                st.subheader("Signup")
+                username = st.text_input("Enter username")
+                email = st.text_input("Enter email")
+                password = st.text_input("Enter password", type="password")
+                signup_button = st.form_submit_button("Signup")
 
-        uploaded_file = st.file_uploader("Choose a file", type=["txt", "csv"])
-        if uploaded_file is not None:
-            rawtext = uploaded_file.getvalue().decode("utf-8")
-        else:
-            rawtext = st.text_area("Or enter text", "Type Here", height=300)
+                if signup_button:
+                    try:
+                        user = auth.create_user_with_email_and_password(email, password)
+                        st.success("Account created successfully!")
+                        user_id = user['localId']
+                        db.child("users").child(user_id).set({
+                            "username": username,
+                            "email": email
+                        })
+                        st.session_state['user'] = user
+                    except Exception as e:
+                        st.error(f"Error creating account: {e}")
 
-        all_entity_types = list(nlp.get_pipe("ner").labels) + ["EMAIL"]
-        entity_types = st.multiselect(
-            "Select entity types to protect",
-            all_entity_types,
-            default=DEFAULT_ENTITY_TYPES,
-        )
+        elif choice == "Login":
+            with st.form("login_form"):
+                st.subheader("Login")
+                email = st.text_input("Enter email")
+                password = st.text_input("Enter password", type="password")
+                login_button = st.form_submit_button("Login")
 
-        custom_words = st.text_input("Enter custom words to protect (comma-separated)")
-        custom_word_list = (
-            [word.strip() for word in custom_words.split(",") if word.strip()]
-            if custom_words
-            else None
-        )
+                if login_button:
+                    try:
+                        user = auth.sign_in_with_email_and_password(email, password)
+                        st.success("Login successful!")
+                        st.session_state['user'] = user
+                        user_id = user['localId']
+                        user_data = db.child("users").child(user_id).get().val()
+                        if user_data:
+                            st.write(f"Welcome, {user_data.get('username')}!")
+                        else:
+                            st.write("No additional user data found.")
+                    except Exception as e:
+                        st.error(f"Error logging in: {e}")
 
-        protection_method = st.radio(
-            "Select Protection Method",
-            ("Data Redaction", "Data Masking", "Data Anonymization"),
-        )
+    if st.session_state['user']:
+        
+        activities = [
+            "Data Protection",
+            "Entity Analysis",
+            "Downloads",
+            "About",
+            "View Logs",
+        ]
+        choice = st.sidebar.selectbox("Select Task", activities)
 
-        if protection_method == "Data Redaction":
-            redaction_level = st.radio(
-                "Select Redaction Level", ("High", "Medium", "Low")
-            )
+        if choice == "Data Protection":
+            st.subheader("Data Protection Options")
 
-        if st.button("Process"):
-            if not rawtext or rawtext == "Type Here":
-                st.error("Please enter some text to protect or upload a file.")
-            elif not entity_types and not custom_word_list:
-                st.error(
-                    "Please select at least one entity type to protect or enter custom words."
-                )
-            else:
-                with st.spinner("Processing text..."):
-                    original_text = rawtext
-                    if protection_method == "Data Redaction":
-                        result, _ = redact_entities(
-                            rawtext, entity_types, custom_word_list, redaction_level
-                        )
-                    elif protection_method == "Data Masking":
-                        result = mask_data(rawtext, entity_types, custom_word_list)
-                    else:  # Data Anonymization
-                        result = anonymize_data(rawtext, entity_types, custom_word_list)
+            uploaded_file = st.file_uploader("Choose a file", type=["txt", "csv", "pdf", "docx", "pptx"])
+            if uploaded_file is not None:
+                file_type = uploaded_file.type
 
-            # Log the protection activity
-            log_protection_activity(original_text, result, protection_method)
-
-            # Log to blockchain
-            data_hash = hash_data(result)
-            timestamp = datetime.now().isoformat()
-            add_audit_log(data_hash, protection_method, timestamp)
-
-            st.write("Processed Text:")
-            st.write(result)
-
-            filename = f"{protection_method.lower().replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
-            st.markdown(
-                get_download_link(
-                    result, filename, f"Download {protection_method} Text"
-                ),
-                unsafe_allow_html=True,
-            )
-            save_download_history(filename)
-        else:
-            st.write("Please process the text to see the results.")
-
-    elif choice == "Entity Analysis":
-        st.subheader("Entity Analysis")
-        rawtext = st.text_area("Enter text for analysis", "Type Here", height=300)
-        if st.button("Analyze"):
-            if not rawtext or rawtext == "Type Here":
-                st.error("Please enter some text to analyze.")
-            else:
-                with st.spinner("Analyzing text..."):
-                    entity_counts = get_entity_counts(rawtext)
-                st.write("Entity Counts:")
-                for entity, count in entity_counts.items():
-                    st.write(f"{entity}: {count}")
-
-    elif choice == "Downloads":
-        st.subheader("Download History")
-        history = get_download_history()
-        if history:
-            for item in history:
-                st.write(f"{item['timestamp']}: {item['filename']}")
-                file_path = os.path.join(UPLOAD_FOLDER, item["filename"])
-                if os.path.exists(file_path):
-                    with open(file_path, "r") as f:
-                        st.download_button(
-                            f"Download {item['filename']}", f.read(), item["filename"]
-                        )
+                if file_type == "application/pdf":
+                    rawtext = extract_text_from_pdf(uploaded_file.read())
+                elif file_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+                    rawtext = extract_text_from_docx(uploaded_file.read())
+                elif file_type == "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+                    rawtext = extract_text_from_pptx(uploaded_file.read())
+                elif file_type == "text/plain" or file_type == "text/csv":
+                    rawtext = uploaded_file.getvalue().decode("utf-8")
                 else:
-                    st.write(f"File {item['filename']} no longer exists.")
-        else:
-            st.write("No download history available.")
+                    st.error("Unsupported file type")
+                    rawtext = ""
 
-    # elif choice == "View Logs":
-    #   st.subheader("View Logs")
-
-    # Path to your log file
-    #  log_file_path = ".//data_protection_tool.log"
-
-    # if os.path.exists(log_file_path):
-    #    with open(log_file_path, 'r') as file:
-    #       log_entries = file.readlines()
-
-    # Display log entries with custom formatting
-    #  for entry in log_entries:
-    #     formatted_entry = format_log_entry(entry.strip())
-    #    st.markdown(formatted_entry, unsafe_allow_html=True)
-    # else:
-    #   st.error("Log file not found.")
-
-    elif choice == "View Logs":
-        st.subheader("View Blockchain Logs")
-
-    if st.button("Fetch Blockchain Logs"):
-        try:
-            # Get the latest block number
-            latest_block = web3.eth.get_block('latest')['number']
-            
-            # Fetch logs for the entire blockchain history
-            event_filter = {
-                'fromBlock': 0,
-                'toBlock': latest_block,
-                'address': contract.address
-            }
-            logs = web3.eth.get_logs(event_filter)
-            
-            # Process the logs
-            events = [contract.events.LogCreated().process_log(log) for log in logs]
-
-            if events:
-                for event in events:
-                    # Extract event data
-                    data_hash = event['args']['hash']
-                    action = event['args']['action']
-                    timestamp = event['args']['timestamp']
-                    
-                    # Display event data
-                    st.markdown(
-                        f"""
-                        ---
-                        **Transaction Hash**: `{event['transactionHash'].hex()}`  
-                        **Block Number**: {event['blockNumber']}  
-                        **Hash**: {data_hash}  
-                        **Action**: {action}  
-                        **Timestamp**: {timestamp}
-                        """
-                    )
+                if rawtext:
+                    st.text_area("File content", rawtext, height=300)
             else:
-                st.write("No logs found on the blockchain.")
-        except Exception as e:
-            st.error(f"Error fetching logs: {e}")
-            print(f"Error details: {str(e)}") 
+                rawtext = st.text_area("Or enter text", "Type Here", height=300)
 
-    elif choice == "About":
-        st.subheader("About")
-        st.write(
-            "This is an enhanced data protection tool built with Streamlit and spaCy."
-        )
-        st.write("Features include:")
-        st.write(
-            "- Data Redaction: Obscures or blacks out sensitive or confidential information in a document"
-        )
-        st.write(
-            "- Data Masking: Replaces authentic information with fake one, but with the same structure"
-        )
-        st.write(
-            "- Data Anonymization: Erases/encrypts identifiers in a document so identification is not possible"
-        )
-        st.write("- Entity analysis")
-        st.write("- Download history and re-download of previous files")
-        st.write("- File upload support")
-        st.write("- Email detection and protection")
+            all_entity_types = list(nlp.get_pipe("ner").labels) + ["EMAIL"]
+            entity_types = st.multiselect(
+                "Select entity types to protect",
+                all_entity_types,
+                default=DEFAULT_ENTITY_TYPES,
+            )
+
+            custom_words = st.text_input("Enter custom words to protect (comma-separated)")
+            custom_word_list = (
+                [word.strip() for word in custom_words.split(",") if word.strip()]
+                if custom_words
+                else None
+            )
+
+            protection_method = st.radio(
+                "Select Protection Method",
+                ("Data Redaction", "Data Masking", "Data Anonymization"),
+            )
+
+            if protection_method == "Data Redaction":
+                redaction_level = st.radio(
+                    "Select Redaction Level", ("High", "Medium", "Low")
+                )
+
+            if st.button("Process"):
+                if not rawtext or rawtext == "Type Here":
+                    st.error("Please enter some text to protect or upload a file.")
+                elif not entity_types and not custom_word_list:
+                    st.error(
+                        "Please select at least one entity type to protect or enter custom words."
+                    )
+                else:
+                    with st.spinner("Processing text..."):
+                        original_text = rawtext
+                        if protection_method == "Data Redaction":
+                            result, _ = redact_entities(
+                                rawtext, entity_types, custom_word_list, redaction_level
+                            )
+                        elif protection_method == "Data Masking":
+                            result = mask_data(rawtext, entity_types, custom_word_list)
+                        else:  # Data Anonymization
+                            result = anonymize_data(rawtext, entity_types, custom_word_list)
+
+                # Log the protection activity
+                log_protection_activity(original_text, result, protection_method)
+
+                # Log to blockchain
+                data_hash = hash_data(result)
+                timestamp = datetime.now().isoformat()
+                user_id = st.session_state['user']['localId']
+                add_audit_log(user_id, data_hash, protection_method, timestamp)
+
+
+                st.write("Processed Text:")
+                st.write(result)
+
+                filename = f"{protection_method.lower().replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+                st.markdown(
+        get_download_link(result, filename, f"Download {protection_method} Text"),
+        unsafe_allow_html=True,
+    )
+
+                save_download_history(filename)
+            else:
+                st.write("Please process the text to see the results.")
+
+        elif choice == "Entity Analysis":
+            st.subheader("Entity Analysis")
+            rawtext = st.text_area("Enter text for analysis", "Type Here", height=300)
+            if st.button("Analyze"):
+                if not rawtext or rawtext == "Type Here":
+                    st.error("Please enter some text to analyze.")
+                else:
+                    with st.spinner("Analyzing text..."):
+                        entity_counts = get_entity_counts(rawtext)
+                    st.write("Entity Counts:")
+                    for entity, count in entity_counts.items():
+                        st.write(f"{entity}: {count}")
+
+        elif choice == "Downloads":
+            st.subheader("Download History")
+            history = get_download_history()
+            if history:
+                for item in history:
+                    st.write(f"{item['timestamp']}: {item['filename']}")
+                    file_path = os.path.join(UPLOAD_FOLDER, item["filename"])
+                    if os.path.exists(file_path):
+                        with open(file_path, "r") as f:
+                            st.download_button(
+                                f"Download {item['filename']}", f.read(), item["filename"]
+                            )
+                    else:
+                        st.write(f"File {item['filename']} no longer exists.")
+            else:
+                st.write("No download history available.")
+
+        # elif choice == "View Logs":
+        #   st.subheader("View Logs")
+
+        # Path to your log file
+        #  log_file_path = ".//data_protection_tool.log"
+
+        # if os.path.exists(log_file_path):
+        #    with open(log_file_path, 'r') as file:
+        #       log_entries = file.readlines()
+
+        # Display log entries with custom formatting
+        #  for entry in log_entries:
+        #     formatted_entry = format_log_entry(entry.strip())
+        #    st.markdown(formatted_entry, unsafe_allow_html=True)
+        # else:
+        #   st.error("Log file not found.")
+
+        elif choice == "View Logs":
+            st.subheader("View Blockchain Logs")
+
+            if st.button("Fetch Blockchain Logs"):
+                try:
+                    user_id = st.session_state['user']['localId']
+                    user_logs = contract.functions.getUserLogs(user_id).call()
+
+                    if user_logs:
+                        for log in user_logs:
+                            st.markdown(
+                            f"""
+                            ---
+                            **Hash**: {log[1]}  
+                            **Action**: {log[2]}  
+                            **Timestamp**: {log[3]}
+                            """
+                        )
+                    else:
+                        st.write("No logs found for this user.")
+                except Exception as e:
+                    st.error(f"Error fetching logs: {e}")
+                    print(f"Error details: {str(e)}")
+            
+        elif choice == "About":
+            st.subheader("About")
+            st.write(
+                "This is an enhanced data protection tool built with Streamlit and spaCy."
+            )
+            st.write("Features include:")
+            st.write(
+                "- Data Redaction: Obscures or blacks out sensitive or confidential information in a document"
+            )
+            st.write(
+                "- Data Masking: Replaces authentic information with fake one, but with the same structure"
+            )
+            st.write(
+                "- Data Anonymization: Erases/encrypts identifiers in a document so identification is not possible"
+            )
+            st.write("- Entity analysis")
+            st.write("- Download history and re-download of previous files")
+            st.write("- File upload support")
+            st.write("- Email detection and protection")
+
+        if st.sidebar.button("Logout"):
+            st.session_state['user'] = None
+            st.success("Logged out successfully!")
+            
 
     # Run cleanup job
-    cleanup_old_files()
+    cleanup_old_files()         
 
 
 if __name__ == "__main__":
