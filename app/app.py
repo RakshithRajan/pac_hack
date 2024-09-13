@@ -1,5 +1,5 @@
 from cryptography.fernet import Fernet
-
+from typing import Union
 from web3.datastructures import AttributeDict
 import spacy
 import streamlit as st
@@ -90,7 +90,7 @@ blockchain_url = (
 )
 web3 = Web3(Web3.HTTPProvider(blockchain_url))
 
-contract_address = "0x7bB51F69c5E8c1C31Fa36F2Fdf32c26C7C4275f8"  # Replace with your deployed contract address
+contract_address = "0x319758d08c5155fDf39D6c8601Cb745795d4C4cD"  # Replace with your deployed contract address
 
 # Use the user's suggested approach
 compiled_contract_path = os.path.join(
@@ -150,9 +150,10 @@ def serialize_web3_object(obj):
         return obj
     return str(obj)
 
-def add_audit_log(user_id: str, data_hash: str, action: str, timestamp: str):
+def add_audit_log(user_id: str, data_hash: str, action: str, timestamp: str, use_encryption: bool = False):
     try:
-        tx_hash = contract.functions.addLog(user_id, data_hash, action, timestamp).transact()
+        # Include use_encryption in the log data
+        tx_hash = contract.functions.addLog(user_id, data_hash, f"{action} (Encrypted: {use_encryption})", timestamp).transact()
         receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
 
         print(f"Log added to blockchain. Transaction Hash: {tx_hash.hex()}")
@@ -213,36 +214,51 @@ def hash_data(text: str) -> str:
 
 
 def log_protection_activity(
-    original_text: str, processed_text: str, protection_method: str
+    user_id: str,
+    original_text: str, 
+    processed_text: str, 
+    protection_method: str, 
+    redaction_level: str = None, 
+    use_encryption: bool = False
 ):
     timestamp = datetime.now().isoformat()
     redacted_amount = len(original_text) - len(processed_text)
     data_hash = hash_data(processed_text)
 
-    log_message = f"{timestamp} | Method: {protection_method} | Redacted: {redacted_amount} chars | Hash: {data_hash}"
+    log_message = (
+        f"{timestamp} | "
+        f"User ID: {user_id} | "
+        f"Method: {protection_method} | "
+        f"Redacted: {redacted_amount} chars | "
+        f"Hash: {data_hash} | "
+        f"Redaction Level: {redaction_level if redaction_level else 'N/A'} | "
+        f"Encryption Used: {'Yes' if use_encryption else 'No'}"
+    )
 
     # Log to file
     logging.info(log_message)
 
     # Log to blockchain
     try:
-        add_audit_log(user_id, data_hash, protection_method, timestamp)
+        add_audit_log(user_id, data_hash, protection_method, timestamp, use_encryption)
         logging.info(f"Log added to blockchain successfully: {data_hash}")
     except Exception as e:
         logging.error(f"Error adding log to blockchain: {e}")
 
 
-def process_text(text, protection_method, entity_types, custom_words, redaction_level):
+def process_text(user_id, text, protection_method, entity_types, custom_words, redaction_level=None, use_encryption=False):
     if protection_method == "Data Redaction":
-        result, _ = redact_entities(text, entity_types, custom_words, redaction_level)
+        result, modifications, encryption_key = redact_or_encrypt_entities(text, entity_types, custom_words, redaction_level, use_encryption)
     elif protection_method == "Data Masking":
         result = mask_data(text, entity_types, custom_words)
+        encryption_key = None
     else:  # Data Anonymization
         result = anonymize_data(text, entity_types, custom_words)
+        encryption_key = None
 
-    log_protection_activity(text, result, protection_method, redaction_level)
+    log_protection_activity(user_id, text, result, protection_method, redaction_level, use_encryption)
 
-    return result
+    return result, encryption_key
 
 
 
@@ -272,41 +288,76 @@ def load_nlp_model():
 
 nlp, email_matcher = load_nlp_model()
 
+def generate_key():
+    return Fernet.generate_key()
 
-def redact_entities(text: str, entity_types: List[str], custom_words: Optional[List[str]] = None, redaction_level: str = "Low") -> Tuple[str, List[Tuple[int, int, str, str]]]:
+def encrypt_entity(entity: str, key: bytes) -> str:
+    f = Fernet(key)
+    encrypted = f.encrypt(entity.encode())
+    return base64.urlsafe_b64encode(encrypted).decode()
+
+def decrypt_entity(encrypted_entity: str, key: bytes) -> str:
+    f = Fernet(key)
+    decoded = base64.urlsafe_b64decode(encrypted_entity)
+    return f.decrypt(decoded).decode()
+
+def redact_or_encrypt_entities(text: str, entity_types: List[str], custom_words: Optional[List[str]] = None, redaction_level: str = "Low", use_encryption: bool = False) -> Tuple[str, List[Tuple[int, int, str, str]], Optional[bytes]]:
     doc = nlp(text)
-    redactions = []
+    modifications = []
+    key = None
 
-    def partially_redact(word: str, level: str) -> str:
-        if level == "High":
-            return "[Redacted]"
-        elif level == "Medium":
-            return word[: len(word) // 2] + "x" * (len(word) - len(word) // 2)
+    if use_encryption:
+        key = generate_key()
+
+    def modify_entity(word: str) -> str:
+        if use_encryption:
+            return encrypt_entity(word, key)
         else:
-            return f"{word[:len(word)//2]}-xxxx"
+            if redaction_level == "High":
+                return "[REDACTED]"
+            elif redaction_level == "Medium":
+                return word[:len(word)//2] + "x" * (len(word) - len(word)//2)
+            else:
+                return f"{word[:len(word)//2]}-xxxx"
 
+    # Process custom words
     if custom_words:
         for word in custom_words:
             for match in re.finditer(re.escape(word), text, re.IGNORECASE):
-                redactions.append((match.start(), match.end(), "[REDACTED CUSTOM]", "CUSTOM"))
+                modified = modify_entity(word)
+                modifications.append((match.start(), match.end(), modified, "CUSTOM"))
 
+    # Process emails
     if "EMAIL" in entity_types:
         email_matches = email_matcher(doc)
         for _, start, end in email_matches:
-            redacted = partially_redact(text[start:end], redaction_level)
-            redactions.append((start, end, redacted, "EMAIL"))
+            modified = modify_entity(text[start:end])
+            modifications.append((start, end, modified, "EMAIL"))
 
+    # Process other entities
     for ent in doc.ents:
         if ent.label_ in entity_types:
-            redacted = partially_redact(ent.text, redaction_level)
-            redactions.append((ent.start_char, ent.end_char, redacted, ent.label_))
+            modified = modify_entity(ent.text)
+            modifications.append((ent.start_char, ent.end_char, modified, ent.label_))
 
-    redactions.sort(key=lambda x: x[1], reverse=True)
-
-    for start, end, replacement, label in redactions:
+    # Apply modifications in reverse order to preserve indices
+    modifications.sort(key=lambda x: x[1], reverse=True)
+    for start, end, replacement, label in modifications:
         text = text[:start] + replacement + text[end:]
 
-    return text, redactions
+    return text, modifications, key
+
+def decrypt_text(text: str, key: bytes) -> str:
+    def decrypt_match(match):
+        try:
+            encrypted = match.group(0)
+            return decrypt_entity(encrypted, key)
+        except:
+            return match.group(0)  # Return original if decryption fails
+
+    # Use regex to find and decrypt all base64-encoded strings
+    decrypted_text = re.sub(r'[A-Za-z0-9_-]{50,}={0,2}', decrypt_match, text)
+    return decrypted_text
 
 
 
@@ -553,6 +604,7 @@ def main():
             "Downloads",
             "About",
             "View Logs",
+            "Decrypt Text",
         ]
         choice = st.sidebar.selectbox("Select Task", activities)
 
@@ -595,56 +647,69 @@ def main():
             )
 
             protection_method = st.radio(
-                "Select Protection Method",
-                ("Data Redaction", "Data Masking", "Data Anonymization"),
-            )
+            "Select Protection Method",
+            ("Data Redaction", "Data Masking", "Data Anonymization"),
+        )
+            
+            redaction_level = None
+            use_encryption = False
 
             if protection_method == "Data Redaction":
                 redaction_level = st.radio(
                     "Select Redaction Level", ("High", "Medium", "Low")
                 )
+                use_encryption = st.checkbox("Use Encryption Instead of Redaction")
 
-            if st.button("Process"):
-                if not rawtext or rawtext == "Type Here":
-                    st.error("Please enter some text to protect or upload a file.")
-                elif not entity_types and not custom_word_list:
-                    st.error(
-                        "Please select at least one entity type to protect or enter custom words."
-                    )
-                else:
-                    with st.spinner("Processing text..."):
-                        original_text = rawtext
-                        if protection_method == "Data Redaction":
-                            result, _ = redact_entities(
-                                rawtext, entity_types, custom_word_list, redaction_level
-                            )
-                        elif protection_method == "Data Masking":
-                            result = mask_data(rawtext, entity_types, custom_word_list)
-                        else:  # Data Anonymization
-                            result = anonymize_data(rawtext, entity_types, custom_word_list)
+                if st.button("Process"):
+                        if not rawtext or rawtext == "Type Here":
+                            st.error("Please enter some text to protect or upload a file.")
+                        elif not entity_types and not custom_word_list:
+                            st.error("Please select at least one entity type to protect or enter custom words.")
+                        else:
+                            with st.spinner("Processing text..."):
+                                original_text = rawtext
+                                user_id = st.session_state['user']['localId']
+                                result, encryption_key = process_text(
+                                    user_id,
+                                    rawtext, 
+                                    protection_method, 
+                                    entity_types, 
+                                    custom_word_list, 
+                                    redaction_level, 
+                                    use_encryption if protection_method == "Data Redaction" else False
+                                )
 
-                # Log the protection activity
-                log_protection_activity(original_text, result, protection_method)
+                        # Log to blockchain
+                        data_hash = hash_data(result)
+                        timestamp = datetime.now().isoformat()
+                        add_audit_log(user_id, data_hash, protection_method, timestamp, use_encryption if protection_method == "Data Redaction" else False)
+                        st.write("Processed Text:")
+                        st.write(result)
 
-                # Log to blockchain
-                data_hash = hash_data(result)
-                timestamp = datetime.now().isoformat()
-                user_id = st.session_state['user']['localId']
-                add_audit_log(user_id, data_hash, protection_method, timestamp)
+                        if encryption_key:
+                            st.write("Encryption Key (save this to decrypt later):")
+                            st.code(encryption_key.decode())
 
+                        filename = f"{protection_method.lower().replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+                        st.markdown(
+                            get_download_link(result, filename, f"Download {protection_method} Text"),
+                            unsafe_allow_html=True,
+                        )
 
-                st.write("Processed Text:")
-                st.write(result)
+                        save_download_history(filename)
 
-                filename = f"{protection_method.lower().replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
-                st.markdown(
-        get_download_link(result, filename, f"Download {protection_method} Text"),
-        unsafe_allow_html=True,
-    )
+        elif choice == "Decrypt Text":
+            st.subheader("Decrypt Text")
+            encrypted_text = st.text_area("Enter text with encrypted parts", height=200)
+            encryption_key = st.text_input("Enter encryption key")
 
-                save_download_history(filename)
-            else:
-                st.write("Please process the text to see the results.")
+            if st.button("Decrypt"):
+                try:
+                    decrypted_text = decrypt_text(encrypted_text, encryption_key.encode())
+                    st.write("Decrypted Text:")
+                    st.text_area("Result", decrypted_text, height=300)
+                except Exception as e:
+                    st.error(f"Decryption failed: {str(e)}")
 
         elif choice == "Entity Analysis":
             st.subheader("Entity Analysis")
