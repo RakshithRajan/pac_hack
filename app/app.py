@@ -1,3 +1,5 @@
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.backends import default_backend
 from cryptography.fernet import Fernet
 from typing import Union
 from web3.datastructures import AttributeDict
@@ -247,8 +249,11 @@ def log_protection_activity(
 
 
 def process_text(user_id, text, protection_method, entity_types, custom_words, redaction_level=None, use_encryption=False):
+    original_text = text
     if protection_method == "Data Redaction":
-        result, modifications, encryption_key = redact_or_encrypt_entities(text, entity_types, custom_words, redaction_level, use_encryption)
+        redacted_text, modifications = redact_entities(text, entity_types, custom_words, redaction_level)
+        key = generate_key()
+        encrypted_original = encrypt_full_text(original_text, key)
     elif protection_method == "Data Masking":
         result = mask_data(text, entity_types, custom_words)
         encryption_key = None
@@ -256,9 +261,10 @@ def process_text(user_id, text, protection_method, entity_types, custom_words, r
         result = anonymize_data(text, entity_types, custom_words)
         encryption_key = None
 
-    log_protection_activity(user_id, text, result, protection_method, redaction_level, use_encryption)
+    log_protection_activity(user_id, original_text, redacted_text, protection_method, redaction_level)
 
-    return result, encryption_key
+
+    return redacted_text, key.decode(), encrypted_original
 
 
 
@@ -291,34 +297,25 @@ nlp, email_matcher = load_nlp_model()
 def generate_key():
     return Fernet.generate_key()
 
-def encrypt_entity(entity: str, key: bytes) -> str:
+def encrypt_full_text(text: str, key: bytes) -> str:
     f = Fernet(key)
-    encrypted = f.encrypt(entity.encode())
-    return base64.urlsafe_b64encode(encrypted).decode()
+    return f.encrypt(text.encode()).decode()
 
-def decrypt_entity(encrypted_entity: str, key: bytes) -> str:
+def decrypt_full_text(encrypted_text: str, key: bytes) -> str:
     f = Fernet(key)
-    decoded = base64.urlsafe_b64decode(encrypted_entity)
-    return f.decrypt(decoded).decode()
+    return f.decrypt(encrypted_text.encode()).decode()
 
-def redact_or_encrypt_entities(text: str, entity_types: List[str], custom_words: Optional[List[str]] = None, redaction_level: str = "Low", use_encryption: bool = False) -> Tuple[str, List[Tuple[int, int, str, str]], Optional[bytes]]:
+def redact_entities(text: str, entity_types: List[str], custom_words: Optional[List[str]] = None, redaction_level: str = "Low") -> Tuple[str, List[Tuple[int, int, str, str]]]:
     doc = nlp(text)
     modifications = []
-    key = None
-
-    if use_encryption:
-        key = generate_key()
 
     def modify_entity(word: str) -> str:
-        if use_encryption:
-            return encrypt_entity(word, key)
+        if redaction_level == "High":
+            return "[Redacted]"
+        elif redaction_level == "Medium":
+            return f"[Redacted:{len(word)}]"
         else:
-            if redaction_level == "High":
-                return "[REDACTED]"
-            elif redaction_level == "Medium":
-                return word[:len(word)//2] + "x" * (len(word) - len(word)//2)
-            else:
-                return f"{word[:len(word)//2]}-xxxx"
+            return f"[Redacted:{word[:2]}...]"
 
     # Process custom words
     if custom_words:
@@ -345,20 +342,7 @@ def redact_or_encrypt_entities(text: str, entity_types: List[str], custom_words:
     for start, end, replacement, label in modifications:
         text = text[:start] + replacement + text[end:]
 
-    return text, modifications, key
-
-def decrypt_text(text: str, key: bytes) -> str:
-    def decrypt_match(match):
-        try:
-            encrypted = match.group(0)
-            return decrypt_entity(encrypted, key)
-        except:
-            return match.group(0)  # Return original if decryption fails
-
-    # Use regex to find and decrypt all base64-encoded strings
-    decrypted_text = re.sub(r'[A-Za-z0-9_-]{50,}={0,2}', decrypt_match, text)
-    return decrypted_text
-
+    return text, modifications
 
 
 def generate_fake_data(entity_type: str) -> str:
@@ -658,37 +642,37 @@ def main():
                 redaction_level = st.radio(
                     "Select Redaction Level", ("High", "Medium", "Low")
                 )
-                use_encryption = st.checkbox("Use Encryption Instead of Redaction")
 
                 if st.button("Process"):
-                        if not rawtext or rawtext == "Type Here":
-                            st.error("Please enter some text to protect or upload a file.")
-                        elif not entity_types and not custom_word_list:
-                            st.error("Please select at least one entity type to protect or enter custom words.")
-                        else:
-                            with st.spinner("Processing text..."):
-                                original_text = rawtext
-                                user_id = st.session_state['user']['localId']
-                                result, encryption_key = process_text(
-                                    user_id,
-                                    rawtext, 
-                                    protection_method, 
-                                    entity_types, 
-                                    custom_word_list, 
-                                    redaction_level, 
-                                    use_encryption if protection_method == "Data Redaction" else False
-                                )
+                    if not rawtext or rawtext == "Type Here":
+                        st.error("Please enter some text to protect or upload a file.")
+                    elif not entity_types and not custom_word_list:
+                        st.error("Please select at least one entity type to protect or enter custom words.")
+                    else:
+                        with st.spinner("Processing text..."):
+                            user_id = st.session_state['user']['localId']
+                            result, key, encrypted_original = process_text(
+                                user_id,
+                                rawtext, 
+                                protection_method, 
+                                entity_types, 
+                                custom_word_list, 
+                                redaction_level
+                            )
 
                         # Log to blockchain
                         data_hash = hash_data(result)
                         timestamp = datetime.now().isoformat()
-                        add_audit_log(user_id, data_hash, protection_method, timestamp, use_encryption if protection_method == "Data Redaction" else False)
+                        add_audit_log(user_id, data_hash, protection_method, timestamp, True)
+                        
                         st.write("Processed Text:")
                         st.write(result)
 
-                        if encryption_key:
-                            st.write("Encryption Key (save this to decrypt later):")
-                            st.code(encryption_key.decode())
+                        st.write("Encryption Key (save this to decrypt later):")
+                        st.code(key)
+
+                        st.write("Encrypted Original (store this securely):")
+                        st.code(encrypted_original)
 
                         filename = f"{protection_method.lower().replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
                         st.markdown(
@@ -705,7 +689,7 @@ def main():
 
             if st.button("Decrypt"):
                 try:
-                    decrypted_text = decrypt_text(encrypted_text, encryption_key.encode())
+                    decrypted_text = decrypt_full_text(encrypted_text, encryption_key.encode())
                     st.write("Decrypted Text:")
                     st.text_area("Result", decrypted_text, height=300)
                 except Exception as e:
